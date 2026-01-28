@@ -3,6 +3,9 @@
 
 class QTableView;
 class CsvTableModel;
+class QSortFilterProxyModel;
+class QLineEdit;
+class QPlainTextEdit;
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -14,7 +17,7 @@ private slots:
 // void openCsv();
 // void cancelLoad();
 
-// void onSelectionChanged();
+void onSelectionChanged();
 // void saveAnnotations();
 // void loadAnnotations();
 // void applyAnnotation();
@@ -22,5 +25,8 @@ private slots:
 
 private:
     CsvTableModel* m_model = nullptr;
+    QSortFilterProxyModel* m_proxy = nullptr;
     QTableView* m_table = nullptr;
+    QLineEdit* m_filter = nullptr;
+    QPlainTextEdit* m_note = nullptr;
 };
