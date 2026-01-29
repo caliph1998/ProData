@@ -15,6 +15,11 @@
 #include <QAction>
 #include <QToolBar>
 #include <QStatusBar>
+#include <QFileDialog>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMessageBox>
 
 struct MainWindow::Engine 
 {
@@ -122,37 +127,117 @@ MainWindow::MainWindow() : QMainWindow(), e(std::make_unique<Engine>()) {
 
 MainWindow::~MainWindow() = default;
 
+int MainWindow::currentSourceRow() const
+{
+    const auto idx = e->table->currentIndex();
+    if (!idx.isValid())
+        return -1;
+    const auto src = e->proxy->mapToSource(idx);
+    return src.row();
+}
+
 void MainWindow::onSelectionChanged()
 {
-
+    const int r = currentSourceRow();
+    if (r < 0)
+        return;
+    if (e->model->hasAnnotation(r))
+    {
+        const auto a = e->model->annotation(r);
+        e->note->setPlainText(a.note);
+        const int s = e->severity->findText(a.severity);
+        e->severity->setCurrentIndex(s >= 0 ? s : 0);
+    }
+    else
+    {
+        e->note->clear();
+        e->severity->setCurrentIndex(0);
+    }
 }
 
 void MainWindow::applyAnnotation()
 {
+    const int r = currentSourceRow();
+    if (r < 0)
+    {
+        QMessageBox::information(this, "No selection", "Select a row first.");
+        return;
+    }
 
+    Annotation a;
+    a.note = e->note->toPlainText().trimmed();
+    a.severity = e->severity->currentText();
+    if (a.note.isEmpty())
+    {
+        QMessageBox::information(this, "Empty note", "Write a note (or press Clear).");
+        return;
+    }
+    e->model->setAnnotation(r, a);
+    e->status->setText("Annotation saved for selected row.");
 }
 
 void MainWindow::clearAnnotation()
 {
-
+    const int r = currentSourceRow();
+    if (r < 0)
+        return;
+    e->model->clearAnnotation(r);
+    e->note->clear();
+    e->severity->setCurrentIndex(0);
+    e->status->setText("Annotation cleared.");
 }
 
-void  MainWindow::openCsv()
+void MainWindow::saveAnnotations()
+{
+    const QString path = QFileDialog::getSaveFileName(
+        this, "Save Annotations", "annotations.json", "JSON (*.json)");
+    if (path.isEmpty())
+        return;
+    
+    QFile f(path);
+    if (!f.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::critical(this, "Error", "Could not write file.");
+        return;
+    }
+
+    QJsonDocument doc(e->model->annotationsToJson());
+    f.write(doc.toJson(QJsonDocument::Indented));
+    e->status->setText("Annotations saved.");
+}
+
+void MainWindow::loadAnnotations()
+{
+    const QString path = QFileDialog::getOpenFileName(
+        this, "Load Annotations", QString(), "JSON (*.json)");
+    if (path.isEmpty())
+        return;
+    
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly))
+    {
+        QMessageBox::critical(this, "Error", "Could not read file.");
+        return;
+    }
+
+    const auto bytes = f.readAll();
+    const auto doc = QJsonDocument::fromJson(bytes);
+    if (!doc.isObject())
+    {
+        QMessageBox::critical(this, "Error", "Invalid JSON.");
+        return;
+    }
+
+    e->model->annotationsFromJson(doc.object());
+    e->status->setText("Annotations loaded.");
+}
+
+void MainWindow::openCsv()
 {
 
 }
 
-void  MainWindow::cancelLoad()
-{
-
-}
-
-void  MainWindow::saveAnnotations()
-{
-
-}
-
-void  MainWindow::loadAnnotations()
+void MainWindow::cancelLoad()
 {
 
 }

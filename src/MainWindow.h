@@ -21,4 +21,6 @@ void clearAnnotation();
 private:
     struct Engine;
     std::unique_ptr<Engine> e;
+
+    int currentSourceRow() const;
 };
