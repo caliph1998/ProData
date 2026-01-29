@@ -1,11 +1,6 @@
 #pragma once
 #include <QMainWindow>
-
-class QTableView;
-class CsvTableModel;
-class QSortFilterProxyModel;
-class QLineEdit;
-class QPlainTextEdit;
+#include <memory>
 
 class MainWindow final : public QMainWindow {
     Q_OBJECT
@@ -14,19 +9,16 @@ public:
     ~MainWindow() override;
 
 private slots:
-// void openCsv();
-// void cancelLoad();
+void openCsv();
+void cancelLoad();
 
 void onSelectionChanged();
-// void saveAnnotations();
-// void loadAnnotations();
-// void applyAnnotation();
-// void clearAnnotation();
+void saveAnnotations();
+void loadAnnotations();
+void applyAnnotation();
+void clearAnnotation();
 
 private:
-    CsvTableModel* m_model = nullptr;
-    QSortFilterProxyModel* m_proxy = nullptr;
-    QTableView* m_table = nullptr;
-    QLineEdit* m_filter = nullptr;
-    QPlainTextEdit* m_note = nullptr;
+    struct Engine;
+    std::unique_ptr<Engine> e;
 };
