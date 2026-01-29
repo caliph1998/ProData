@@ -1,25 +1,28 @@
 #include "MainWindow.h"
 #include "CsvTableModel.h"
+#include "CsvLoader.h"
 
-#include <QSortFilterProxyModel>
-#include <QSplitter>
-#include <QWidget>
-#include <QTableView>
-#include <QLineEdit>
-#include <QPlainTextEdit>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QComboBox>
-#include <QPushButton>
-#include <QProgressBar>
 #include <QAction>
-#include <QToolBar>
-#include <QStatusBar>
-#include <QFileDialog>
+#include <QComboBox>
 #include <QFile>
+#include <QFileDialog>
+#include <QFutureWatcher>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
+#include <QLineEdit>
 #include <QMessageBox>
+#include <QPlainTextEdit>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QSortFilterProxyModel>
+#include <QSplitter>
+#include <QStatusBar>
+#include <QTableView>
+#include <QToolBar>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <QtConcurrent>
 
 struct MainWindow::Engine 
 {
@@ -35,8 +38,8 @@ struct MainWindow::Engine
 
   QAction* cancelAction = nullptr;
 
-//   CsvLoader* loader = nullptr;
-//   QFutureWatcher<CsvDataset> watcher;
+  CsvLoader* loader = nullptr;
+  QFutureWatcher<CsvDataset> watcher;
 
 //   QString lastCsvPath;
 //   QString lastNotesPath;
@@ -123,6 +126,24 @@ MainWindow::MainWindow() : QMainWindow(), e(std::make_unique<Engine>()) {
     tb->addAction("Load Notes", this, &MainWindow::loadAnnotations);
     e->cancelAction = tb->addAction("Cancel Load", this, &MainWindow::cancelLoad);
     e->cancelAction->setEnabled(false);
+
+    e->loader = new CsvLoader(this);
+    connect(e->loader, &CsvLoader::progress, this, [this](int p) {
+        e->progress->setValue(p);
+    });
+
+    connect(&e->watcher, &QFutureWatcher<CsvDataset>::finished, this, [this]() {
+        try
+        {
+            e->model->setDataset(e->watcher.result());
+            setBusy(false, QString("Loaded %1 rows.").arg(e->model->rowCount()));
+        } catch (const std::exception& e) {
+            setBusy(false, "Load failed.");
+            QMessageBox::critical(this, "Error", e.what());
+        }
+    });
+
+    setBusy(false, "Ready.");
 }
 
 MainWindow::~MainWindow() = default;
@@ -234,10 +255,42 @@ void MainWindow::loadAnnotations()
 
 void MainWindow::openCsv()
 {
+    const QString path = QFileDialog::getOpenFileName(
+        this, "Open CSV", QString(), "CSV Files (*.csv);;All Files (*)");
+    if (path.isEmpty())
+        return;
+    e->loader->requestCancel();
+    e->loader = new CsvLoader(this);
 
+    // re-connect required since loader is re-initialized
+    connect(e->loader, &CsvLoader::progress, this, [this](int p) {
+        e->progress->setValue(p);
+    });
+
+    setBusy(true, "Loading...");
+
+    auto future = QtConcurrent::run([loader = e->loader, path]() {
+        return loader->load(path);
+    });
+    e->watcher.setFuture(future);
 }
 
 void MainWindow::cancelLoad()
 {
+    if (e->loader)
+        e->loader->requestCancel();
+    setBusy(true, "Cancel requested...");
+}
 
+void MainWindow::setBusy(bool busy, const QString& msg)
+{
+    e->cancelAction->setEnabled(busy);
+    e->filter->setEnabled(!busy);
+    e->table->setEnabled(!busy);
+    e->note->setEnabled(!busy);
+    e->severity->setEnabled(!busy);
+
+    e->status->setText(msg);
+    if (!busy)
+        e->progress->setValue(0);
 }

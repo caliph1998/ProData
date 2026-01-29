@@ -12,6 +12,7 @@ qt_add_executable(DatasetInspector
   src/main.cpp
   src/MainWindow.h src/MainWindow.cpp
   src/CsvTableModel.h src/CsvTableModel.cpp
+  src/CsvLoader.h src/CsvLoader.cpp
 )
 
 target_link_libraries(DatasetInspector PRIVATE Qt6::Widgets Qt6::Concurrent)

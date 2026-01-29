@@ -23,4 +23,5 @@ private:
     std::unique_ptr<Engine> e;
 
     int currentSourceRow() const;
+    void setBusy(bool busy, const QString& msg);
 };

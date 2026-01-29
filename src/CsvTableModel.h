@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CsvLoader.h" // for CsvDataset struct
+
 #include <QAbstractTableModel>
 #include <QHash>
 #include <QPair>
@@ -23,6 +25,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
 
     void setDataset(QStringList headers, QVector<QStringList> rows);
+    void setDataset(CsvDataset&& ds);
 
     bool hasAnnotation(int row) const;
     Annotation annotation(int row) const;

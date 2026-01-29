@@ -1,9 +1,9 @@
 #include "CsvTableModel.h"
+
 #include <QBrush>
 #include <QColor>
 #include <QJsonObject>
 #include <QJsonArray>
-
 
 CsvTableModel::CsvTableModel(QObject* parent) : QAbstractTableModel(parent)
 {
@@ -82,6 +82,15 @@ void CsvTableModel::setDataset(QStringList headers, QVector<QStringList> rows)
     beginResetModel();
     m_headers = std::move(headers);
     m_rows = std::move(rows);
+    m_rowAnnotations.clear();
+    endResetModel();
+}
+
+void CsvTableModel::setDataset(CsvDataset&& ds)
+{
+    beginResetModel();
+    m_headers = std::move(ds.headers);
+    m_rows = std::move(ds.rows);
     m_rowAnnotations.clear();
     endResetModel();
 }
