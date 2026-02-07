@@ -1,4 +1,4 @@
-# Dataset Inspector
+# ProData
 
 A Qt6-based desktop application for inspecting, filtering, and annotating CSV datasets.
 
